@@ -5,26 +5,11 @@ import os, sys, re, shutil
 import random
 import numpy
 import pandas as pd
-
+from pandas import DataFrame
+import seaborn as sns
 # source activate py27
 # source deactivate
-# [BASE]
-# PROJECT_DIR : /Users/yaxin/Google_Share/Yaxin_PhD/IARR_project/codes/run_metarib
-# DATA_DIR : /Users/yaxin/Google_Share/Yaxin_PhD/IARR_project/codes/run_metarib/data
-# SAMPLING_NUM : 1000
-# SEED: 100
-# THREADS : 30
-#
-# [EMIRGE]
-# EM_PATH : ~/bin/EMIRGE/emirge_amplicon.py
-# EM_PARA : --phred33 -l 125 -i 250 -s 50 -a 20 -n 10
-# EM_REF : /export/jonassenfs/yaxinx/meta_rna/test_v2/reference/94_otus_16S.fixed.fasta
-# EM_BT : /export/jonassenfs/yaxinx/meta_rna/test_v2/reference/94_otus_16S.fixed.fasta.btindex
-#
-# [BBMAP]
-# BM_PATH: /export/jonassenfs/yaxinx/local/software/bbmap
-# MAP_PARA : minid=0.96 maxindel=1 minhits=2 idfilter=0.98
-# CLS_PARA : fo=t ow=t c=t mcs=1 e=5 mid=99
+# python final.metarib.v1.py MetaRib.configure.ini
 def parse_cfg(config):
     # BASE
     global DATA_DIR, PROJECT_DIR, SAMPLING_NUM, THREAD
@@ -61,7 +46,7 @@ def init(config):
         fq2_path = data_dir+'/'+sample_id+'.2.fq'
         samples_fq1_path[sample_id] = fq1_path
         samples_fq2_path[sample_id] = fq2_path
-    return(samples_list, samples_fq1_path, samples_fq1_path, all_fq1, all_fq2)
+    return(samples_list, samples_fq1_path, samples_fq2_path, all_fq1, all_fq2)
 
 def cal_fastq_num(fastq):
     fastq = fastq
@@ -113,7 +98,7 @@ def dedup_contig(old_fa, new_fa):
     #step4: dedup fasta
     all_dedup_fa = work_dir+'/all.dedup.fasta'
     all_dup_fa = work_dir+'/all.dup.fasta'
-    cmd = ' '.join([BM_PATH+'/dedup.sh', 'in='+cur_uniq_fa, 'out='+all_dedup_fa, 'outd='+all_dup_fa, CLS_PARA, '2> dedup.log'])
+    cmd = ' '.join([BM_PATH+'/dedupe.sh', 'in='+cur_uniq_fa, 'out='+all_dedup_fa, 'outd='+all_dup_fa, CLS_PARA, '2> dedupe.log'])
     os.system(cmd)
     return(all_dedup_fa)
 
@@ -140,8 +125,8 @@ def run_align_bbmap(current_iter_fa, unmap_fq1, unmap_fq2):
 
 def run_emirge_and_dedup(sub_fq1, sub_fq2, dedup_fa, iter_time):
     cmd = ' '.join(['python2', EM_PATH, 'emirge_amp/', '-1', sub_fq1, '-2', sub_fq2,
-    EM_PARA, '-f', EM_REF, '-b', EM_BT, '2> iter_'+str(iter_time)+'_emirge.log'])
-    print(cmd)
+    EM_PARA, '-f', EM_REF, '-b', EM_BT, '>> iter_'+str(iter_time)+'_emirge.log','2>> iter_'+str(iter_time)+'_emirge.log'])
+   # print(cmd)
     os.system(cmd)
     # change to last iteration folder in EMIRGE
     os.chdir('emirge_amp')
@@ -294,13 +279,14 @@ def generate_abundance_table(samples_list, all_scafstats_path, dedup_ref):
     ab_dir = PROJECT_DIR+'/MetaRib/Abundance/'
     os.chdir(ab_dir)
     fa_ids = parse_fa_ids(dedup_ref)
-    all_ab_df =['Contig_ID'] = fa_ids
+    all_ab_df = pd.DataFrame()
+    all_ab_df['Contig_ID'] = fa_ids
     all_ab_df.set_index('Contig_ID')
     for sample_name in samples_list:
         sample_df = pd.read_csv(all_scafstats_path[sample_name], sep = '\t')
         saved_df = pd.DataFrame()
         saved_df['Contig_ID'] = sample_df['#name']
-        saved_df['Contig_ID'] = save_df.Contig_ID.astype(str)
+        saved_df['Contig_ID'] = saved_df.Contig_ID.astype(str)
         saved_df.set_index('Contig_ID')
         # extract the % of amb and unamb reads, and sum as the abundance
         per_unamb = sample_df['%unambiguousReads']
@@ -310,10 +296,27 @@ def generate_abundance_table(samples_list, all_scafstats_path, dedup_ref):
         # merge two df based on the all_ab column keys
         all_ab_df = all_ab_df.merge(saved_df, 'left')
     # save abundance file
-    all_ab_file = os.getcwd()+'/all.deup.est.ab.txt'
+    all_ab_file = os.getcwd()+'/all.dedup.est.ab.txt'
     all_ab_df.to_csv(all_ab_file, sep='\t', header=True, index = False, float_format='%.5f', na_rep='NaN')
     os.chdir(PROJECT_DIR)
     return(all_ab_file)
+
+def plot_heatmap(all_ab_file):
+    ab_dir = PROJECT_DIR+'/MetaRib/Abundance/'
+    os.chdir(ab_dir)
+    all_ab_df = pd.read_csv(all_ab_file, sep ='\t')
+    # name row labels with contig id
+    all_ab_df.set_index(keys='Contig_ID', inplace=True, drop=False)
+    #sum the ab across samples
+    all_ab_df['Sum'] = all_ab.drop('Contig_ID', axis=1).sum(axis=1)
+    all_ab_df = all_ab_df.sort_values(by='Sum', ascending=False)
+    # plot top 20 most abundant contigs, save A4 figures as pdf
+    sns.set(rc={'figure.figsize':(11.7,8.27)})
+    top_heatmap = sns.heatmap(all_ab_df[:20].drop(['Sum','Contig_ID'], axis=1), annot=True)
+    top_heatmap.get_figure().savefig('top20.est.ab.heatmap.pdf')
+    os.chdir(PROJECT_DIR)
+    return(top_heatmap)
+
 
 def main():
     # parse config file
@@ -322,7 +325,6 @@ def main():
     run_cfg = parse_cfg(config)
     # INIT
     samples_list, samples_fq1_path, samples_fq2_path, all_fq1, all_fq2  = init(config)
-
     # build work folder
     #print(str(SEED),str(THREAD))
     work_dir = PROJECT_DIR+'/MetaRib'
@@ -334,9 +336,10 @@ def main():
     os.chdir(work_dir)
     dedup_fa = os.getcwd()+'/dedup_contigs.fasta'
     open(dedup_fa,'w').close()
-    global LOG
-    log_file = os.getcwd()+'/run.log'
-    LOG = open(log_file, 'a')
+    orig_dedup_fa = dedup_fa
+    #global LOG
+    #log_file = os.getcwd()+'/run.log'
+    #LOG = open(log_file, 'a')
     # iteration parameters
     unmap_fq1, unmap_fq2, iter_time = all_fq1, all_fq2, 0
     keep_running = 1
@@ -349,20 +352,26 @@ def main():
     #print(sub_fq1, sub_fq2, all_fq2, BM_PATH)
     # main iterative steps by while loop
     while (reads_num >= 1.1 * float(SAMPLING_NUM) and keep_running == 1 and iter_time <= max_iter):
-        print('====START RUN ITERATION '+str(iter_time)+'====')
+        curr_iter_time = iter_time
+        print('====START ITERATION '+str(curr_iter_time)+'====')
         (unmap_fq1, unmap_fq2, dedup_fa, iter_time, keep_running) = run_iteration(unmap_fq1, unmap_fq2, dedup_fa, iter_time, keep_running)
+        print('====FINISH ITERATION '+str(curr_iter_time)+'====')
     # run last iteration, increase the size
-    print('====START RUN ITERATION '+str(iter_time)+'====')
+    curr_iter_time = iter_time
+    print('====START ITERATION '+str(curr_iter_time)+'====')
     all_dedup_fa = run_last_iteration(unmap_fq1, unmap_fq2, dedup_fa, iter_time, keep_running)
+    print('====FINISH ITERATION '+str(curr_iter_time)+'====')
+    print('====START ABUNDANCE EST====')
     # calculate mapping stats for each sample
     all_scafstats_path, dedup_ref = cal_mapping_stats(samples_list, samples_fq1_path, samples_fq2_path, all_dedup_fa)
     # generate abundance table based on scafstats
     all_ab_file = generate_abundance_table(samples_list, all_scafstats_path, dedup_ref)
-    os.remove(dedup_fa)
+    # plot heatmap of top 20 most abundant contigs
+    top_heatmap = plot_heatmap(all_ab_file)
+    print('====FINISH ABUNDANCE EST====')
+    os.remove(orig_dedup_fa)
     print('====PROGRAM FINISHED!====')
     return()
 
 if __name__ == "__main__":
    main()
-
-# python final.metarib.v1.py MetaRib.configure.ini
