@@ -1,21 +1,25 @@
 # MetaRib V1.0
 ## Manual 
-MeteRib is an iterative tool for ribosomal gene reconstruction from meta-transcriptomic data .   
+MeteRib is an iterative tool for ribosomal gene reconstruction from whole RNA meta-transcriptomic data.   
          
 __Dependencies:__ .     
-* EMIRGE: https://github.com/csmiller/EMIRGE .   
-* BBMAP tools: https://jgi.doe.gov/data-and-tools/bbtools/ .   
-* Python: python2.7, pandas, seaborn, matplotlib .   
+* EMIRGE: https://github.com/csmiller/EMIRGE
+* BBMAP tools: https://jgi.doe.gov/data-and-tools/bbtools/  
+* Python: python2.7, pandas, seaborn.   
 
 
 __Usage:__     
-Step1: Set configure file.    
+
+Step1: Data preparation.
+MetaRib supports multiple samples. The data structure need to 
+
+Step2: Set configure file.    
 
 [BASE] .    
-PROJECT_DIR :  # Project Dir .   
+PROJECT_DIR :  # Project Dir.   
 DATA_DIR : # Raw data storage dir.     
-SAMPLING_NUM : # Subsampling number.     
-THREAD : # Number of cores.        
+SAMPLING_NUM : # Subsampling reads number in each iteration.     
+THREAD : # Number of cores used in mapping and assemble.        
 
 [EMIRGE] .      
 EM_PATH : ~/bin/EMIRGE/emirge_amplicon.py
