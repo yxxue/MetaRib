@@ -1,9 +1,6 @@
 # MetaRib V1.0
 ## Introduction 
-MeteRib is an iterative tool for ribosomal gene reconstruction from whole RNA meta-transcriptomic data. The MetaRib workflow consists of three major modules: i) initialization, ii) iterative reconstruction and iii) Post processing, summarized in the following figure:
-
-![picture](https://github.com/yxxue/MetaRib/tree/master/src/metarib_workflow.jpg)
-
+MeteRib is an iterative tool for ribosomal gene reconstruction from whole RNA meta-transcriptomic data. The MetaRib workflow consists of three major modules: i) initialization, ii) iterative reconstruction and iii) Post processing. 
 
          
 ## Dependencies            
