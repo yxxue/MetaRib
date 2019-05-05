@@ -10,8 +10,22 @@ __Dependencies:__ .
 
 __Usage:__     
 
-Step1: Data preparation.
-MetaRib supports multiple samples. The data structure need to 
+Assume your current folder is: /project. Then the following setup would be appropriate to run MetaRib.    
+
+Step1: Data preparation.    
+
+MetaRib supports multiple samples. If you data folder is: /project/data. Your data structure need to be like this:   
+
+\________________________________   
+Content of samples.list.txt files:    
+SAMPLE_1   
+SAMPLE_2   
+\________________________________    
+Sample files:   
+/project/data/SAMPLE_1.1.fq   
+/project/data/SAMPLE_1.2.fq  
+/project/data/SAMPLE_2.1.fq  
+/project/data/SAMPLE_2.1.fq  
 
 Step2: Set configure file.    
 
