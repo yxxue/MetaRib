@@ -1,14 +1,16 @@
 # MetaRib V1.0
-## Manual 
-MeteRib is an iterative tool for ribosomal gene reconstruction from whole RNA meta-transcriptomic data.   
+## Introduction 
+MeteRib is an iterative tool for ribosomal gene reconstruction from whole RNA meta-transcriptomic data. The MetaRib workflow consists of three major modules: i) initialization, ii) iterative reconstruction and iii) Post processing, summarized in the following figure:
+
+
          
-__Dependencies:__ .     
+## Dependencies            
 * EMIRGE: https://github.com/csmiller/EMIRGE
 * BBtools: https://jgi.doe.gov/data-and-tools/bbtools/  
 * Python: python2.7, pandas, seaborn.   
 
 
-__Usage:__     
+## Usage    
 
 Assume your current folder is: */project*. Then the following setup would be appropriate to run MetaRib.    
 
