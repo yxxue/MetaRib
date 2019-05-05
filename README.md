@@ -35,7 +35,7 @@ PROJECT_DIR : /project/   # your project folder
 DATA_DIR : /project/data/  # your data folder     
 SAMPLING_NUM : 100000   # Subsampling reads number in each iteration      
 THREAD : 20 # Number of cores used in MetaRib
-SEED : 100 # SEED number for random subsampling      
+SEED : 100 # SEED number for random subsampling         
 
 [EMIRGE]         
 EM_PATH : ~/bin/EMIRGE/emirge_amplicon.py # EMIRGE path
@@ -44,8 +44,8 @@ EM_REF : ~/bin/EMIRGE/references/silva.v123.fa # EMIRGE references
 EM_BT : ~/bin/EMIRGE/references/silva.v123.fa.btindex # EMIRGE reference index
 
 [BBMAP]   
-BM_PATH: ~/bin/BBTOOL/ # BBTOOLS path   
-MAP_PARA : minid=0.96 maxindel=1 minhits=2 idfilter=0.98 # BBTOOLS mapping parameters
+BM_PATH: ~/bin/BBTOOL/ # BBTOOLS path     
+MAP_PARA : minid=0.96 maxindel=1 minhits=2 idfilter=0.98 # BBTOOLS mapping parameters    
 CLS_PARA : fo=t ow=t c=t mcs=1 e=5 mid=99 # BBTOOLS cluster parameters          
 
 
