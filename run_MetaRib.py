@@ -324,8 +324,15 @@ def generate_and_filter_abundance_table(samples_list, all_scafstats_path, all_co
                 all_keeped_ctgs.append(ids)
     # save filtered fasta
     filter_dedup_fa = os.getcwd()+'/all.dedup.filtered.fasta'
-    cmd = ' '.join([BM_PATH, '/filterbyname.sh', 'in='+dedup_ref, 'names='+keeped_ids,'out='+filter_dedup_fa,'include=t'])
+    keep_id_f = open('all.keeped.ids.txt','w')
+    for inp in all_keeped_ctgs:
+        inp = inp.strip()
+        keep_id_f.write(inp+'\n')
+    keep_id_f.close()
+    cmd = ' '.join([BM_PATH+'/filterbyname.sh', 'in='+dedup_ref, 'names=all.keeped.ids.txt','out='+filter_dedup_fa,'include=t'])
     os.system(cmd)
+    # remove id text file
+    os.remove('all.keeped.ids.txt')
     # save abundance file
     #all_ab_file = os.getcwd()+'/all.dedup.est.ab.txt'
     #all_ab_df.to_csv(all_ab_file, sep='\t', header=True, index = False, float_format='%.5f', na_rep='NaN')
