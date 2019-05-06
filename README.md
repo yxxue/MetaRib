@@ -75,7 +75,7 @@ python2 run_MetaRib.py MetaRib.cfg
 ```
 ***Step4: Output.***       
 All output will be stored at */project/MetaRib/*.    
-*/project/MetaRib/Iteration/* includes running result of each iteration.   
+*/project/MetaRib/Iteration/* includes running log of each iteration.   
 */project/MetaRib/Abundance/* includes a final constructed fasta *all.dedup.filtered.fasta*, an estimated abundance table file *all.dedup.filtered.est.ab.txt* and a heatmap distribution of top 20 most abudant contigs across samples *top20.heatmap.pdf*.     
 
 
