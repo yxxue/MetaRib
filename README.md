@@ -26,7 +26,7 @@ Data folder files:
 */project/data/SAMPLE_1.1.fq*      
 */project/data/SAMPLE_1.2.fq*          
 */project/data/SAMPLE_2.1.fq*         
-*/project/data/SAMPLE_2.1.fq*             
+*/project/data/SAMPLE_2.2.fq*             
 */project/data/all.1.fq*   
 */project/data/all.2.fq*     
 
