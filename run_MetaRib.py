@@ -1,20 +1,35 @@
 #!/usr/bin/python
+
+# -*- coding: utf-8 -*-
 __author__ = "Yaxin Xue"
 __license__ = "GPL"
-__version__ = "1.0"
+__version__ = "3.0"
 __affiliation__ = "CBU, University of Bergen"
-__email__ = "xue.ethan@gmail.com"
+__email__ = "xue.ethan@gmail.com, yaxin.xue@uib.no"
 
-import ConfigParser
+# import modules
+
+import ConfigParser, argparse
 import os, sys, re, shutil
 import random
 import pandas as pd
-from pandas import DataFrame
-import seaborn as sns
-import matplotlib.pyplot as plt
-# source activate py27
-# source deactivate
-# python run_MetaRib.py MetaRib.cfg
+
+class MyParser(argparse.ArgumentParser):
+   def error(self, message):
+      sys.stderr.write('error: Check your Parameters!\n')
+      sys.stderr.write('error: %s\n' % message)
+      self.print_help()
+      sys.exit(2)
+
+def parse_arg():
+    example_text = '''Example:
+    python2 run_MetaRib.py -cfg MetaRib.cfg
+    '''
+    parser = argparse.ArgumentParser(description='Constructing ribosomal genes from large scale total RNA meta-transcriptomic data\n',epilog=example_text, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser._optionals.title = 'Mandatory Arguments'
+    parser.add_argument('-cfg', required=True, help='MetaRib configure file')
+    return(parser)
+
 def parse_cfg(config):
     # BASE
     global DATA_DIR, PROJECT_DIR, SAMPLING_NUM, THREAD
@@ -89,16 +104,12 @@ def subsampling_reads(unmap_fq1, unmap_fq2):
     curr_dir = os.getcwd()
     sub_fq1 = curr_dir+'/sub.1.fq'
     sub_fq2 = curr_dir+'/sub.2.fq'
-    # sampleseed=SEED
-    #reformat.sh in1=sub.1.rf.fq in2=sub.2.rf.fq out1=t1.1.fq out2=t1.2.fq sample=60000 ow=t reads=1000000
     sampling_num = int(SAMPLING_NUM)
-    max_reads = 100 * sampling_num
+    max_reads = 1000 * sampling_num
     seeds = random.randint(1, 100)
     cmd = ' '.join([BM_PATH+'/reformat.sh','in1='+unmap_fq1, 'in2='+unmap_fq2,'out1='+sub_fq1,'out2='+sub_fq2, 'sample='+str(sampling_num), 'sampleseed='+str(seeds),'ow=t', 'reads='+str(max_reads), '2> subsample.log'])
     os.system(cmd)
     return(sub_fq1, sub_fq2)
-
-
 
 def dedup_contig(old_fa, new_fa):
     work_dir = os.getcwd()
@@ -113,7 +124,6 @@ def dedup_contig(old_fa, new_fa):
     #step3: keep uniq id
     cur_uniq_fa = work_dir+'/current.uniqname.fasta'
     cmd = ' '.join([BM_PATH+'/reformat.sh', 'in='+cur_sort_fa, 'out='+cur_uniq_fa, 'uniquenames', '2> rename.log'])
-    #cmd = ' '.join([BM_PATH+'/rename.sh', 'in='+cur_sort_fa, 'out='+cur_uniq_fa])
     os.system(cmd)
     #step4: dedup fasta
     all_dedup_fa = work_dir+'/all.dedup.fasta'
@@ -124,9 +134,6 @@ def dedup_contig(old_fa, new_fa):
 
 def run_align_bbmap(current_iter_fa, unmap_fq1, unmap_fq2):
     ref = current_iter_fa
-    # build index
-    #cmd = ' '.join([BM_PATH+'/bbmap.sh', 'ref='+ref])
-    #os.system(cmd)
     # run bbmap alignment, since we may have duplicates, cannot calculate stats
     cmd = ' '.join([BM_PATH+'/bbmap.sh', 'in1='+unmap_fq1, 'in2='+unmap_fq2, 'ref='+ref,
     'threads='+str(THREAD), MAP_PARA, 'outu=bbmap.unmap.fq', 'ow=t', 'statsfile=bbmap.statsfile.txt',
@@ -167,26 +174,33 @@ def run_iteration(unmap_fq1, unmap_fq2, dedup_fa, iter_time, keep_running):
     (sub_fq1, sub_fq2) = subsampling_reads(unmap_fq1, unmap_fq2)
     # run emirge and dedup
     all_dedup_fa, iter_fa = run_emirge_and_dedup(sub_fq1, sub_fq2, dedup_fa, iter_time)
-    # stop iteration if no new contig comes
+    # EMIRGE stop: no more new contigs
     if os.stat(iter_fa).st_size == 0:
         keep_running = 0
         new_iter_time = iter_time + 1
         return(unmap_fq1, unmap_fq2, all_dedup_fa, new_iter_time, keep_running)
-    # check if it has novel contigs
-    #all_dedup_fa = dedup_contig(merged_fa, iter_fa)
+    # print fasta stats
     prev_fa_num = cal_fa_num(dedup_fa)
     cur_fa_num = cal_fa_num(all_dedup_fa)
     new_fa_num = cur_fa_num - prev_fa_num
-    # case1: less than 20 new contigs, only keep case2 at the moment
-    #if new_fa_num <= 20:
-    #    keep_running = 0
-    # aligning to extract unmaped reads
+    fa_stat = 'Iteration: '+str(iter_time)+'\tTotal contigs: '+str(cur_fa_num)+'\tNew contigs: '+str(new_fa_num)
     (new_unmap_fq1, new_unmap_fq2) = run_align_bbmap(all_dedup_fa, unmap_fq1, unmap_fq2)
+    # calculate unmapped fq size (MB)
+    new_unmap_fq_size = os.stat(new_unmap_fq1).st_size/(1024.0*1024)
+    old_unmap_fq_size = os.stat(unmap_fq1).st_size/(1024.0*1024)
+    iter_stat = fa_stat+'\tunmapped fastq (MB): '+str(round(new_unmap_fq_size,2))
+    print(iter_stat)
+    curr_unmap_fq_size = old_unmap_fq_size - new_unmap_fq_size
+#    if curr_unmap_fq_size <= (0.01*new_unmap_fq_size):
+#        keep_running = 0
     # case2: less than 1% novel contigs
     new_unmap_fq_num = cal_fastq_num(new_unmap_fq1)
     old_unmap_fq_num = cal_fastq_num(unmap_fq1)
     curr_unmap_fq_num = old_unmap_fq_num - new_unmap_fq_num
     if curr_unmap_fq_num <= (0.01*new_unmap_fq_num):
+        keep_running = 0
+    # case3: maximum iteration
+    if iter_time == 10:
         keep_running = 0
     new_iter_time = iter_time + 1
     iter_dir = '/'.join([PROJECT_DIR, '/MetaRib/Iteration'])
@@ -204,9 +218,8 @@ def run_last_iteration(unmap_fq1, unmap_fq2, dedup_fa, iter_time, keep_running):
         sub_fq1, sub_fq2 = unmap_fq1, unmap_fq2
         # run emrige_amp and dedup
         all_dedup_fa, iter_fa = run_emirge_and_dedup(sub_fq1, sub_fq2, dedup_fa, iter_time)
-        return(all_dedup_fa)
 
-    # case2: no new contig or only a few new contigs
+    # case2 and 3: only a few new contigs or reach the last iteration
     if (keep_running == 0):
         num_unmap_fq = cal_fastq_num(unmap_fq1)
         if (num_unmap_fq <= 2.0*float(SAMPLING_NUM)):
@@ -214,7 +227,6 @@ def run_last_iteration(unmap_fq1, unmap_fq2, dedup_fa, iter_time, keep_running):
             sub_fq1, sub_fq2 = unmap_fq1, unmap_fq2
             # run emrige_amp and dedup
             all_dedup_fa, iter_fa = run_emirge_and_dedup(sub_fq1, sub_fq2, dedup_fa, iter_time)
-            return(all_dedup_fa)
         else:
             # increase subsampling reads * 2
             work_dir = os.getcwd()
@@ -226,7 +238,13 @@ def run_last_iteration(unmap_fq1, unmap_fq2, dedup_fa, iter_time, keep_running):
             os.system(cmd)
             # run emrige_amp and dedup
             all_dedup_fa, iter_fa = run_emirge_and_dedup(sub_fq1, sub_fq2, dedup_fa, iter_time)
-            return(all_dedup_fa)
+    # print iter fasta stat
+    prev_fa_num = cal_fa_num(dedup_fa)
+    cur_fa_num = cal_fa_num(all_dedup_fa)
+    new_fa_num = cur_fa_num - prev_fa_num
+    fa_stat = 'Iteration: '+str(iter_time)+'\tTotal contigs: '+str(cur_fa_num)+'\tNew contigs: '+str(new_fa_num)
+    print(fa_stat)
+    return(all_dedup_fa)
 
 
 def cal_mapping_stats(samples_list, samples_fq1_path, samples_fq2_path, all_dedup_fa):
@@ -261,34 +279,6 @@ def cal_mapping_stats(samples_list, samples_fq1_path, samples_fq2_path, all_dedu
         all_scafstats_path[sample_name] = scafstats
         all_covstats_path[sample_name] = covstats
     return(all_scafstats_path, all_covstats_path, dedup_ref)
-
-
-# abundance est without post filter
-def generate_abundance_table(samples_list, all_scafstats_path, dedup_ref):
-    ab_dir = PROJECT_DIR+'/MetaRib/Abundance/'
-    os.chdir(ab_dir)
-    fa_ids = parse_fa_ids(dedup_ref)
-    all_ab_df = pd.DataFrame()
-    all_ab_df['Contig_ID'] = fa_ids
-    all_ab_df.set_index('Contig_ID')
-    for sample_name in samples_list:
-        sample_df = pd.read_csv(all_scafstats_path[sample_name], sep = '\t')
-        saved_df = pd.DataFrame()
-        saved_df['Contig_ID'] = sample_df['#name']
-        saved_df['Contig_ID'] = saved_df.Contig_ID.astype(str)
-        saved_df.set_index('Contig_ID')
-        # extract the % of amb and unamb reads, and sum as the abundance
-        per_unamb = sample_df['%unambiguousReads']
-        per_amb = sample_df['%ambiguousReads']
-        per_all = per_unamb + per_amb
-        saved_df[sample_name+'_estab'] = per_all
-        # merge two df based on the all_ab column keys
-        all_ab_df = all_ab_df.merge(saved_df, 'left')
-    # save abundance file
-    all_ab_file = os.getcwd()+'/all.dedup.est.ab.txt'
-    all_ab_df.to_csv(all_ab_file, sep='\t', header=True, index = False, float_format='%.5f', na_rep='NaN')
-    os.chdir(PROJECT_DIR)
-    return(all_ab_file)
 
 def generate_and_filter_abundance_table(samples_list, all_scafstats_path, all_covstats_path, dedup_ref):
     ab_dir = PROJECT_DIR+'/MetaRib/Abundance/'
@@ -329,46 +319,29 @@ def generate_and_filter_abundance_table(samples_list, all_scafstats_path, all_co
         inp = inp.strip()
         keep_id_f.write(inp+'\n')
     keep_id_f.close()
-    cmd = ' '.join([BM_PATH+'/filterbyname.sh', 'in='+dedup_ref, 'names=all.keeped.ids.txt','out='+filter_dedup_fa,'include=t'])
+    cmd = ' '.join([BM_PATH+'/filterbyname.sh', 'in='+dedup_ref, 'names=all.keeped.ids.txt','out='+filter_dedup_fa,'include=t', '2>ft.log'])
     os.system(cmd)
     # remove id text file
     os.remove('all.keeped.ids.txt')
     # save abundance file
-    #all_ab_file = os.getcwd()+'/all.dedup.est.ab.txt'
-    #all_ab_df.to_csv(all_ab_file, sep='\t', header=True, index = False, float_format='%.5f', na_rep='NaN')
     # save filtered abundance file
+    raw_fa_num = cal_fa_num(os.getcwd()+'/all.dedup.fasta')
+    ft_fa_num = cal_fa_num(os.getcwd()+'/all.dedup.filtered.fasta')
+    fa_stat = 'Raw contig:'+str(raw_fa_num)+'\t'+'Filtered contigs: '+str(ft_fa_num)
+    print(fa_stat)
     filter_ab_df = all_ab_df.loc[all_ab_df['Contig_ID'].isin(all_keeped_ctgs)]
     filter_ab_file = os.getcwd()+'/all.dedup.filtered.est.ab.txt'
     filter_ab_df.to_csv(filter_ab_file, sep='\t', header=True, index = False, float_format='%.5f', na_rep='NaN')
     os.chdir(PROJECT_DIR)
     return(filter_ab_file)
-    #return(all_ab_file, filter_ab_file)
-
-
-
-def plot_heatmap(all_ab_file, file_name):
-    ab_dir = PROJECT_DIR+'/MetaRib/Abundance/'
-    os.chdir(ab_dir)
-    all_ab_df = pd.read_csv(all_ab_file, sep ='\t')
-    # name row labels with contig id
-    all_ab_df.set_index(keys='Contig_ID', inplace=True, drop=False)
-    #sum the ab across samples
-    all_ab_df['Sum'] = all_ab_df.drop('Contig_ID', axis=1).sum(axis=1)
-    all_ab_df = all_ab_df.sort_values(by='Sum', ascending=False)
-    # plot top 20 most abundant contigs, save A4 figures as pdf
-    #sns.set(rc={'figure.figsize':(11.7,8.27)})
-    sns.set(rc={'font.size':8, 'figure.figsize':(11.7,8.27), 'axes.labelsize' :8,'axes.titlesize' :8})
-    top_heatmap = sns.heatmap(all_ab_df[:20].drop(['Sum','Contig_ID'], axis=1), annot=True)
-    top_heatmap.get_figure().savefig(file_name)
-    plt.clf()
-    os.chdir(PROJECT_DIR)
-    return(top_heatmap)
-
 
 def main():
     # parse config file
+    parser = parse_arg()
+    args = parser.parse_args()
+    config_file = args.cfg
     config = ConfigParser.ConfigParser()
-    config.read(sys.argv[1])
+    config.read(config_file)
     run_cfg = parse_cfg(config)
     # INIT
     samples_list, samples_fq1_path, samples_fq2_path, all_fq1, all_fq2  = init(config)
@@ -383,40 +356,35 @@ def main():
     dedup_fa = os.getcwd()+'/dedup_contigs.fasta'
     open(dedup_fa,'w').close()
     orig_dedup_fa = dedup_fa
-    #global LOG
-    #log_file = os.getcwd()+'/run.log'
-    #LOG = open(log_file, 'a')
     # iteration parameters
-    unmap_fq1, unmap_fq2, iter_time = all_fq1, all_fq2, 0
+    unmap_fq1, unmap_fq2, iter_time = all_fq1, all_fq2, 1
     keep_running = 1
-    max_iter = 10 # set maximum 20 iterations
+    max_iter = 10 # set maximum 10 iterations
     keep_running = 1
     iteration_dir = work_dir+'/Iteration/'
     if not os.path.isdir(iteration_dir):
         os.mkdir(iteration_dir)
-    reads_num = cal_fastq_num(unmap_fq1)
-    #print(sub_fq1, sub_fq2, all_fq2, BM_PATH)
     # main iterative steps by while loop
-    while (reads_num >= 1.1 * float(SAMPLING_NUM) and keep_running == 1 and iter_time <= max_iter):
+    while (keep_running == 1 and iter_time <= max_iter):
         curr_iter_time = iter_time
         print('====START ITERATION '+str(curr_iter_time)+'====')
         (unmap_fq1, unmap_fq2, dedup_fa, iter_time, keep_running) = run_iteration(unmap_fq1, unmap_fq2, dedup_fa, iter_time, keep_running)
         print('====FINISH ITERATION '+str(curr_iter_time)+'====')
-    # run last iteration, increase the size
+    # it reaches maximum iteration
+    if (curr_iter_time == max_iter):
+        keeep_running = 0
+    #  run last iteration
     curr_iter_time = iter_time
-    print('====START ITERATION '+str(curr_iter_time)+'====')
+    print('====START LAST ITERATION '+str(curr_iter_time)+'====')
     all_dedup_fa = run_last_iteration(unmap_fq1, unmap_fq2, dedup_fa, iter_time, keep_running)
     print('====FINISH ITERATION '+str(curr_iter_time)+'====')
-    print('====START ABUNDANCE EST====')
+    print('====START POSTPROCESSING====')
     # calculate mapping stats for each sample
     all_scafstats_path, all_covstats_path, dedup_ref = cal_mapping_stats(samples_list, samples_fq1_path, samples_fq2_path, all_dedup_fa)
     # generate abundance table based on scafstats, and filter by coverage info
     (filter_ab_file)  = generate_and_filter_abundance_table(samples_list, all_scafstats_path, all_covstats_path, dedup_ref)
-    # plot heatmap of top 20 most abundant contigs
-#   top_heatmap = plot_heatmap(all_ab_file, 'all_ab.top20.heatmap.pdf')
-    file_name = 'top20.heatmap.pdf'
-    filter_heatmap = plot_heatmap(filter_ab_file, file_name)
-    print('====FINISH ABUNDANCE EST====')
+    print('====FINISH POSTPROCESSING====')
+    # print final fasta stat
     os.remove(orig_dedup_fa)
     print('====PROGRAM FINISHED!====')
     return()
