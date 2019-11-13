@@ -1,4 +1,3 @@
-# MetaRib V1.0
 ## Introduction 
 MeteRib is an iterative tool for ribosomal gene reconstruction from whole RNA meta-transcriptomic data. “Total RNA metatranscriptomics” enables us to investigate structural (rRNA) and functional (mRNA) information from samples simultaneously without any PCR or cloning step. Many bioinformatic tools have developed for mRNA analysis in metatranscriptomics, however, no such available tools for rRNA reconstruction in total RNA metatranscriptomics due to the massive and complex rRNA information from such datasets.  MetaRib is based on the most commonly used rRNA assembly tool EMIRGE with several improvements to circumvent these hurdles. 
 
@@ -10,8 +9,7 @@ Some of highlights in our method include the following:
 
 
 The MetaRib workflow consists of three major modules: i) initialization, ii) iterative reconstruction and iii) Post processing. Schematic overview of MetaRib workflow is shown below:    
-![workflow] (./src/metarib_workflow_demo.jpg)  
-
+![workflow](./src/metarib_workflow_demo.jpg)  
 
 
 
@@ -20,7 +18,7 @@ The MetaRib workflow consists of three major modules: i) initialization, ii) ite
 ## Dependencies            
 * EMIRGE: https://github.com/csmiller/EMIRGE
 * BBtools: https://jgi.doe.gov/data-and-tools/bbtools/  
-* Python: python2.7, pandas, seaborn.   
+* Python: python2.7, pandas.   
 
 
 ## Usage    
@@ -85,12 +83,20 @@ MIN_PER : 80
 ***Step3: Run MetaRib.***  
 MetaRib is developed in Python2.7 as EMIRGE is impletmented in Python2.7. After you prepare the data and configure file, run the code like this:    
 ```python
-python2 run_MetaRib.py MetaRib.cfg
+python2 run_MetaRib.py -cfg MetaRib.cfg
 ```
 ***Step4: Output.***       
 All output will be stored at */project/MetaRib/*.    
-*/project/MetaRib/Iteration/* includes running log of each iteration.   
-*/project/MetaRib/Abundance/* includes a final constructed fasta *all.dedup.filtered.fasta*, an estimated abundance table file *all.dedup.filtered.est.ab.txt* and a heatmap distribution of top 20 most abudant contigs across samples *top20.heatmap.pdf*.     
+*/project/MetaRib/Iteration/* stores all intermediate data of each iteration.   
+
+*/project/MetaRib/Abundance/* stores all information related with post-processing and final result.
+
+There are three final output files: 
+
+* *all.dedup.fasta* is the original reconstructed fasta without post-processing filtering  
+* *all.dedup.filtered.fasta* is the filtered reconstructed fasta after post-processing filtering
+* *all.dedup.filtered.est.ab.txt* is the estimated relative abundance table for filtered fasta 
+
 
 
 
