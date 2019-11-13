@@ -6,10 +6,15 @@ Some of highlights in our method include the following:
 * We utilize the uneven distribution of microbial communities that reconstruct highly abundant rRNA genes firstly using smaller * subset in an iterative approach.      
 * We boost the whole process for large scale rRNA dataset with strict alignment.   
 * We address over-estimation issue of EMIRGE and achieve full-length rRNA reconstruction by dereplicating and clustering contigs in each iteration.    
-* We further estimate the relative abundance of reconstructed rRNA genes among samples and filter potential false-positive records using mapping statistics information   .  
+* We further estimate the relative abundance of reconstructed rRNA genes among samples and filter potential false-positive records using mapping statistics information.     
 
 
-The MetaRib workflow consists of three major modules: i) initialization, ii) iterative reconstruction and iii) Post processing. 
+The MetaRib workflow consists of three major modules: i) initialization, ii) iterative reconstruction and iii) Post processing. Schematic overview of MetaRib workflow is shown below:    
+![workflow] (./src/metarib_workflow_demo.jpg)  
+
+
+
+
 
          
 ## Dependencies            
