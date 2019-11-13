@@ -1,6 +1,15 @@
 # MetaRib V1.0
 ## Introduction 
-MeteRib is an iterative tool for ribosomal gene reconstruction from whole RNA meta-transcriptomic data. The MetaRib workflow consists of three major modules: i) initialization, ii) iterative reconstruction and iii) Post processing. 
+MeteRib is an iterative tool for ribosomal gene reconstruction from whole RNA meta-transcriptomic data. “Total RNA metatranscriptomics” enables us to investigate structural (rRNA) and functional (mRNA) information from samples simultaneously without any PCR or cloning step. Many bioinformatic tools have developed for mRNA analysis in metatranscriptomics, however, no such available tools for rRNA reconstruction in total RNA metatranscriptomics due to the massive and complex rRNA information from such datasets.  MetaRib is based on the most commonly used rRNA assembly tool EMIRGE with several improvements to circumvent these hurdles. 
+
+Some of highlights in our method include the following:
+* We utilize the uneven distribution of microbial communities that reconstruct highly abundant rRNA genes firstly using smaller * subset in an iterative approach.      
+* We boost the whole process for large scale rRNA dataset with strict alignment.   
+* We address over-estimation issue of EMIRGE and achieve full-length rRNA reconstruction by dereplicating and clustering contigs in each iteration.    
+* We further estimate the relative abundance of reconstructed rRNA genes among samples and filter potential false-positive records using mapping statistics information   .  
+
+
+The MetaRib workflow consists of three major modules: i) initialization, ii) iterative reconstruction and iii) Post processing. 
 
          
 ## Dependencies            
