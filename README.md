@@ -85,6 +85,29 @@ MetaRib is developed in Python2.7 as EMIRGE is impletmented in Python2.7. After 
 ```python
 python2 run_MetaRib.py -cfg MetaRib.cfg
 ```
+MetaRib will also output information about remaining unmapped reads and novel contigs at each iteration. A demo is shown below:   
+```
+====START ITERATION 1====
+Iteration: 1    Total contigs: 981      New contigs: 981        unmapped fastq (MB): 61.92
+====FINISH ITERATION 1====
+====START ITERATION 2====
+Iteration: 2    Total contigs: 1418     New contigs: 437        unmapped fastq (MB): 38.17
+====FINISH ITERATION 2====
+====START ITERATION 3====
+Iteration: 3    Total contigs: 1439     New contigs: 21 unmapped fastq (MB): 36.15
+====FINISH ITERATION 3====
+====START ITERATION 4====
+Iteration: 4    Total contigs: 1455     New contigs: 16 unmapped fastq (MB): 35.83
+====FINISH ITERATION 4====
+====START LAST ITERATION 5====
+Iteration: 5    Total contigs: 1463     New contigs: 8
+====FINISH ITERATION 5====
+====START POSTPROCESSING====
+Raw contig:1463 Filtered contigs: 855
+====FINISH POSTPROCESSING====
+====PROGRAM FINISHED!====
+```
+
 ***Step4: Output.***       
 All output will be stored at */project/MetaRib/*.    
 */project/MetaRib/Iteration/* stores all intermediate data of each iteration.   
